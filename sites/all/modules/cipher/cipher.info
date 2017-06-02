@@ -1,0 +1,5 @@
+name = Cipher
+description = A cipher game.
+package = Custom
+core = 7.x
+files[] = cipher.module

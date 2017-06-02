@@ -1,0 +1,125 @@
+<?php
+
+function cipher_menu(){
+  $items['cipher'] = array(
+    'title' => 'Cipher',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cipher_form'),
+    'access callback' => TRUE,
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['cipher_success_page'] = array(
+    'title' => 'Success',
+    'page callback' => 'cipher_success',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+function cipher_form(){
+  $form['shift_value'] = array(
+    '#title' => 'Shift value',
+    '#type' => 'textfield',
+    '#description' => t('Please enter a number'),
+    '#element_validate' => array('element_validate_number', 'element_validate_range'),
+    '#required' => TRUE,
+  );
+
+  $form['shift_direction'] = array(
+    '#title' => 'Shift direction',
+    '#type' => 'textfield',
+    '#description' => t('Enter "left" or "right"'),
+    '#element_validate' => array('element_validate_lr'),
+    '#required' => TRUE,
+  );
+
+  $form['phrase'] = array(
+    '#title' => 'Phrase',
+    '#type' => 'textfield',
+    '#description' => t('Enter a phrase'),
+    '#required' => TRUE,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Cipher',
+  );
+
+  return $form;
+}
+
+function element_validate_range($element){
+  if($element['#value'] < 0){
+    form_error($element, t('number must be greater or equal 0'));
+  }
+}
+
+function element_validate_lr($element){
+  if(!in_array($element['#value'], ['left', 'right'])){
+    form_error($element, t('please enter "right" or "left" only'));
+  }
+}
+
+function cipher_form_submit($form, &$form_state){
+  $num = intval($form_state['values']['shift_value']);
+  $direction = $form_state['values']['shift_direction'];
+  $phrase = strtolower($form_state['values']['phrase']);
+
+  $letters = array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
+  $letter_array = str_split($phrase);
+  $positions = array();
+
+  foreach ($letter_array as $i => $letter) {
+    if(! in_array($letter, $letters)){
+      array_push($positions, $letter);
+    } else {
+      if($direction === 'left'){
+        foreach ($letters as $key => $value){
+          if(($letter == $value) && ($key == 0)){
+            if($num%26 != 0){
+              array_push($positions, $letters[26-abs($key-$num%26)]);
+            } else {
+              array_push($positions, $letters[$key]);
+            }
+          } elseif(($letter == $value) && ($key != 0)){
+            if($num%26 != 0){
+              if($key >= $num){
+                array_push($positions, $letters[$key-$num%26]);
+              } else {
+                array_push($positions, $letters[26-($num-$key)]);
+              }
+            } else {
+              array_push($positions, $letters[$key]);
+            }
+          }
+        }
+      } elseif($direction === 'right'){
+        foreach ($letters as $key => $value) {
+          if(($letter == $value) && ($key == 25)){
+            if($num%26 != 0){
+              array_push($positions, $letters[abs(26-($num%26+$key))]);
+            } else {
+              array_push($positions, $letters[$key]);
+            }
+          } elseif(($letter == $value) && ($key != 25)){
+            if($num%26 != 0){
+              array_push($positions, $letters[$key+$num%26]);
+            } else {
+              array_push($positions, $letters[$key]);
+            }
+          }
+        }
+      }
+    }
+  }
+  $_SESSION['output'] = join('',$positions);
+  $form_state['redirect'] = 'cipher_success_page';
+}
+
+function cipher_success(){
+  $result = $_SESSION['output'];
+  return $result;
+}
